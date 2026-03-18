@@ -5,6 +5,7 @@ html {
 body {
   margin: 0;
   background: #0a0e1a;
+  color: #e8e6e1;
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
 }
