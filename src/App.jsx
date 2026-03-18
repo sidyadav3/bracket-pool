@@ -1094,7 +1094,7 @@ export default function App() {
         .export-textarea:focus { border-color: #f59e0b; }
         .export-textarea::placeholder { color: #4b5563; }
       `}</style>
-      <div aria-hidden="true" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: 8, backgroundColor: '#0a0e1a', zIndex: -1, pointerEvents: 'none' }} />
+      
       {notification && (
         <div className={`notification ${notification.type}`}>{notification.msg}</div>
       )}
