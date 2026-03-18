@@ -1,25 +1,28 @@
-# 🏀 Price Family March Madness Pool 2026
+🏀 Price Family March Madness Pool 2026
+A real-time bracket pool web app for the 2026 NCAA Tournament. Built with React, Supabase, and deployed on Vercel.
+Live site: pricemadness.com
+Features
 
-## Setup (one time)
+Fill out brackets — pick winners through all 63 games
+Live leaderboard — auto-scores with custom 1-2-4-6-8-10 point system
+Max possible tracker — see how many points each player can still earn
+Real-time sync — all players see the same data instantly via Supabase
+Admin controls — PIN-protected access for editing brackets, entering results, and managing data
+Export/Import — back up and restore all pool data
+Mobile friendly — works on any device
 
-1. Install Node.js from https://nodejs.org (LTS version)
-2. Open this folder in VS Code
-3. Open the terminal (Ctrl+` or Cmd+`)
-4. Run:
+Scoring
+RoundR64R32Sweet 16Elite 8Final FourChampionshipPoints1246810
+Max possible: 146 points
+Tech Stack
 
-```
-npm install
+Frontend: React + Vite
+Database: Supabase (PostgreSQL)
+Hosting: Vercel
+Domain: pricemadness.com
+
+Local Development
+bashnpm install
 npm run dev
-```
-
-5. Open http://localhost:5173 in your browser
-
-## Every time after that
-
-Just open the folder in VS Code and run:
-
-```
-npm run dev
-```
-
-## Scoring: 1-2-4-6-8-10 per round (max 146 pts)
+Opens at http://localhost:5173
+© 2026 Sid Yadav
