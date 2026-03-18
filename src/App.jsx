@@ -766,6 +766,7 @@ export default function App() {
           display: flex; flex-direction: column; align-items: center; justify-content: center;
           min-height: 100vh; background: #0a0e1a; color: #e8e6e1;
           font-family: 'Oswald', sans-serif; font-size: 1.2rem;
+          position: relative; z-index: 1;
         }
         .loading-trophy { font-size: 3rem; animation: bounce 1s ease infinite; }
         @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
