@@ -1164,20 +1164,18 @@ export default function App() {
         {view === "home" && (
           <>
             <div className="home-grid">
-              {isAdmin && (
-                <div className="card">
-                  <h2>Add Player</h2>
-                  <div className="player-input-row">
-                    <input
-                      placeholder="Enter player name..."
-                      value={currentPlayer}
-                      onChange={(e) => setCurrentPlayer(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleNewPlayer()}
-                    />
-                    <button className="btn btn-primary" onClick={handleNewPlayer}>Fill Bracket</button>
-                  </div>
+              <div className="card">
+                <h2>Add Player</h2>
+                <div className="player-input-row">
+                  <input
+                    placeholder="Enter player name..."
+                    value={currentPlayer}
+                    onChange={(e) => setCurrentPlayer(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleNewPlayer()}
+                  />
+                  <button className="btn btn-primary" onClick={handleNewPlayer}>Fill Bracket</button>
                 </div>
-              )}
+              </div>
               <div className="card">
                 <h2>Pool Info</h2>
                 <p style={{ color: "#9ca3af", lineHeight: 1.6 }}>
