@@ -236,7 +236,7 @@ function RegionBracket({ region, regionKey, bracket, setBracketPick, readOnly })
   );
 }
 
-function FinalFour({ bracket, setBracketPick, readOnly }) {
+function FinalFour({ bracket, setBracketPick, readOnly, tiebreaker, onTiebreakerChange }) {
   const eastWinner = bracket["east-3-0"];
   const southWinner = bracket["south-3-0"];
   const westWinner = bracket["west-3-0"];
@@ -291,6 +291,20 @@ function FinalFour({ bracket, setBracketPick, readOnly }) {
               <div className="champ-name">{champ.seed} {champ.team}</div>
             </div>
           )}
+          <div className="tiebreaker-section">
+            <div className="tiebreaker-label">Tiebreaker: Total combined score of championship game</div>
+            {readOnly ? (
+              <div className="tiebreaker-value">{tiebreaker || "—"}</div>
+            ) : (
+              <input
+                type="number"
+                className="tiebreaker-input"
+                placeholder="e.g. 136"
+                value={tiebreaker || ""}
+                onChange={(e) => onTiebreakerChange && onTiebreakerChange(e.target.value ? parseInt(e.target.value) : null)}
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -448,11 +462,21 @@ function calculateMaxPossible(playerBracket, results) {
 
 function Leaderboard({ players, results }) {
   const hasResults = results && Object.keys(results).length > 0;
+  const actualTotal = results && results["actualTiebreaker"] ? results["actualTiebreaker"] : null;
+
   const scored = players.map((p) => {
     const score = calculateScore(p.bracket, results);
     const maxPossible = calculateMaxPossible(p.bracket, results);
-    return { ...p, score, maxPossible };
-  }).sort((a, b) => b.score.total - a.score.total);
+    const tiebreaker = p.bracket.tiebreaker || null;
+    const tiebreakerDiff = (tiebreaker !== null && actualTotal !== null) ? Math.abs(tiebreaker - actualTotal) : null;
+    return { ...p, score, maxPossible, tiebreaker, tiebreakerDiff };
+  }).sort((a, b) => {
+    if (b.score.total !== a.score.total) return b.score.total - a.score.total;
+    if (a.tiebreakerDiff !== null && b.tiebreakerDiff !== null) {
+      return a.tiebreakerDiff - b.tiebreakerDiff;
+    }
+    return 0;
+  });
 
   const maxTotal = 32 * 1 + 16 * 2 + 8 * 4 + 4 * 6 + 2 * 8 + 1 * 10 ;
 
@@ -462,29 +486,31 @@ function Leaderboard({ players, results }) {
         <span className="lb-rank">#</span>
         <span className="lb-name">Player</span>
         <span className="lb-champ">Champion</span>
+        <span className="lb-total">Pts</span>
+        <span className="lb-max">Max</span>
+        <span className="lb-tb">TB</span>
         <span className="lb-round">R64</span>
         <span className="lb-round">R32</span>
         <span className="lb-round">S16</span>
         <span className="lb-round">E8</span>
         <span className="lb-round">F4</span>
         <span className="lb-round">FIN</span>
-        <span className="lb-total">Total</span>
-        <span className="lb-max">Max</span>
       </div>
       {scored.map((p, i) => (
         <div key={p.name} className={`lb-row ${i === 0 && p.score.total > 0 ? "leader" : ""} ${i % 2 === 0 ? 'even' : ''}`}>
           <span className="lb-rank">{i + 1}</span>
           <span className="lb-name">{p.name}</span>
           <span className="lb-champ">{p.bracket.champ ? `(${p.bracket.champ.seed}) ${p.bracket.champ.team}` : "—"}</span>
+          <span className="lb-total">{p.score.total}</span>
+          <span className="lb-max">{hasResults ? p.maxPossible : maxTotal}</span>
+          <span className="lb-tb">{p.tiebreaker || "—"}</span>
           {p.score.byRound.map((r, ri) => (
             <span key={ri} className="lb-round">{r}</span>
           ))}
-          <span className="lb-total">{p.score.total}</span>
-          <span className="lb-max">{hasResults ? p.maxPossible : maxTotal}</span>
         </div>
       ))}
       <div className="lb-footer">
-        <span>Scoring: 1-2-4-6-8-10 per round</span>
+        <span>Scoring: 1-2-4-6-8-10 · TB = Tiebreaker</span>
         <span>Max possible: {maxTotal} pts</span>
       </div>
     </div>
@@ -508,6 +534,7 @@ export default function App() {
   const [exportText, setExportText] = useState("");
   const [exportLabel, setExportLabel] = useState("");
   const [importText, setImportText] = useState("");
+  const [editingTiebreaker, setEditingTiebreaker] = useState(null);
 
   const showNotification = (msg, type = "success") => {
     setNotification({ msg, type });
@@ -623,12 +650,14 @@ export default function App() {
     }
     const newBracket = buildEmptyBracket();
     setEditingBracket(newBracket);
+    setEditingTiebreaker(null);
     setView("entry");
   };
 
   const handleEditPlayer = (player) => {
     setCurrentPlayer(player.name);
     setEditingBracket({ ...player.bracket });
+    setEditingTiebreaker(player.bracket.tiebreaker || null);
     setView("entry");
   };
 
@@ -694,10 +723,11 @@ export default function App() {
     }
 
     try {
+      const bracketWithTiebreaker = { ...editingBracket, tiebreaker: editingTiebreaker };
       await supabase
         .from("players")
         .upsert(
-          { name, bracket: editingBracket, updated_at: new Date().toISOString() },
+          { name, bracket: bracketWithTiebreaker, updated_at: new Date().toISOString() },
           { onConflict: "name" }
         );
 
@@ -706,13 +736,14 @@ export default function App() {
       let newPlayers;
       if (existing >= 0) {
         newPlayers = [...players];
-        newPlayers[existing] = { name, bracket: editingBracket };
+        newPlayers[existing] = { name, bracket: bracketWithTiebreaker };
       } else {
-        newPlayers = [...players, { name, bracket: editingBracket }];
+        newPlayers = [...players, { name, bracket: bracketWithTiebreaker }];
       }
       setPlayers(newPlayers);
       setCurrentPlayer("");
       setEditingBracket(null);
+      setEditingTiebreaker(null);
       setView("home");
       showNotification(`${name}'s bracket saved!`);
     } catch (e) {
@@ -1003,23 +1034,38 @@ export default function App() {
           color: #f59e0b; font-weight: 700; text-transform: uppercase;
           margin-top: 4px;
         }
+        .tiebreaker-section {
+          margin-top: 12px; text-align: center;
+        }
+        .tiebreaker-label {
+          font-family: 'Oswald', sans-serif; font-size: 0.8rem;
+          text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280;
+          margin-bottom: 6px;
+        }
+        .tiebreaker-input {
+          width: 100px; padding: 8px 12px; border-radius: 8px;
+          border: 1px solid #334155; background: #1e293b; color: #e8e6e1;
+          font-size: 1.1rem; font-family: 'Oswald', sans-serif;
+          text-align: center; outline: none;
+        }
+        .tiebreaker-input:focus { border-color: #f59e0b; }
+        .tiebreaker-value {
+          font-family: 'Oswald', sans-serif; font-size: 1.3rem;
+          color: #e8e6e1; font-weight: 600;
+        }
 
         /* Leaderboard */
         .leaderboard {
           background: #111827; border: 1px solid #1e293b; border-radius: 12px;
-          overflow: hidden;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
         }
         .lb-header-row, .lb-row {
           display: grid;
-          grid-template-columns: 40px 120px 140px repeat(6, 48px) 60px 60px;
+          grid-template-columns: 36px 90px 130px 50px 50px 44px repeat(6, 44px);
           align-items: center; padding: 10px 16px; gap: 4px;
           font-size: 0.82rem;
-        }
-        @media (max-width: 800px) {
-          .lb-header-row, .lb-row {
-            grid-template-columns: 30px 80px 100px repeat(6, 36px) 50px 50px;
-            font-size: 0.7rem; padding: 8px 10px;
-          }
+          min-width: 720px;
         }
         .lb-header-row {
           background: #1e293b; font-family: 'Oswald', sans-serif;
@@ -1038,9 +1084,11 @@ export default function App() {
         .lb-row.leader .lb-total { color: #f59e0b; }
         .lb-max { text-align: center; font-weight: 600; font-family: 'Oswald', sans-serif; font-size: 0.9rem; color: #6b7280; }
         .lb-row.leader .lb-max { color: #a3845c; }
+        .lb-tb { text-align: center; color: #9ca3af; font-size: 0.8rem; }
         .lb-footer {
           display: flex; justify-content: space-between; padding: 10px 16px;
           font-size: 0.75rem; color: #6b7280; background: #0f1520;
+          min-width: 720px;
         }
 
         /* Results Admin */
@@ -1248,7 +1296,7 @@ export default function App() {
                 />
               ))}
             </div>
-            <FinalFour bracket={editingBracket} setBracketPick={setBracketPick} />
+            <FinalFour bracket={editingBracket} setBracketPick={setBracketPick} tiebreaker={editingTiebreaker} onTiebreakerChange={setEditingTiebreaker} />
           </>
         )}
 
@@ -1271,7 +1319,7 @@ export default function App() {
                 />
               ))}
             </div>
-            <FinalFour bracket={viewingPlayer.bracket} setBracketPick={() => {}} readOnly />
+            <FinalFour bracket={viewingPlayer.bracket} setBracketPick={() => {}} readOnly tiebreaker={viewingPlayer.bracket.tiebreaker} />
           </>
         )}
 
@@ -1312,7 +1360,7 @@ export default function App() {
                 />
               ))}
             </div>
-            <FinalFour bracket={results} setBracketPick={handleResultPick} />
+            <FinalFour bracket={results} setBracketPick={handleResultPick} tiebreaker={results.actualTiebreaker} onTiebreakerChange={(val) => { setResults(prev => ({...prev, actualTiebreaker: val})); }} />
           </>
         )}
 
