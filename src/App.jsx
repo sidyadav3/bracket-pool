@@ -34,7 +34,7 @@ const REGIONS = {
     name: "South",
     seeds: [
       { seed: 1, team: "Florida" },
-      { seed: 16, team: "Lehigh" },
+      { seed: 16, team: "Prairie View" },
       { seed: 8, team: "Clemson" },
       { seed: 9, team: "Iowa" },
       { seed: 5, team: "Vanderbilt" },
