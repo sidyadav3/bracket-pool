@@ -170,7 +170,6 @@ function TeamButton({ team, isSelected, onClick, disabled, small, pickStatus }) 
       <span className="team-name">{team.team}</span>
       {pickStatus === "correct" && <span className="pick-icon">✓</span>}
       {pickStatus === "wrong" && <span className="pick-icon">✗</span>}
-      {pickStatus === "eliminated" && <span className="pick-icon">✗</span>}
     </button>
   );
 }
