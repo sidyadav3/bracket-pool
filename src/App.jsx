@@ -158,7 +158,7 @@ function TeamButton({ team, isSelected, onClick, disabled, small, pickStatus }) 
     </div>
   );
 
-  const statusClass = pickStatus === "correct" ? "pick-correct" : pickStatus === "wrong" ? "pick-wrong" : "";
+  const statusClass = pickStatus === "correct" ? "pick-correct" : pickStatus === "wrong" ? "pick-wrong" : pickStatus === "eliminated" ? "pick-eliminated" : pickStatus === "pending" ? "pick-pending" : "";
 
   return (
     <button
@@ -170,6 +170,7 @@ function TeamButton({ team, isSelected, onClick, disabled, small, pickStatus }) 
       <span className="team-name">{team.team}</span>
       {pickStatus === "correct" && <span className="pick-icon">✓</span>}
       {pickStatus === "wrong" && <span className="pick-icon">✗</span>}
+      {pickStatus === "eliminated" && <span className="pick-icon">✗</span>}
     </button>
   );
 }
@@ -188,13 +189,47 @@ function RegionBracket({ region, regionKey, bracket, setBracketPick, readOnly, r
     return results[key] || null;
   };
 
+  // Build set of eliminated teams from results
+  const eliminatedTeams = new Set();
+  if (readOnly && results) {
+    for (let round = 0; round < 4; round++) {
+      const gamesInRound = 8 / Math.pow(2, round);
+      for (let g = 0; g < gamesInRound; g++) {
+        const key = `${regionKey}-${round}-${g}`;
+        if (results[key]) {
+          if (round === 0) {
+            const m = matchups[g];
+            if (results[key].team === m[0].team) eliminatedTeams.add(m[1].team);
+            else eliminatedTeams.add(m[0].team);
+          } else {
+            const prev1Key = `${regionKey}-${round - 1}-${g * 2}`;
+            const prev2Key = `${regionKey}-${round - 1}-${g * 2 + 1}`;
+            const t1 = results[prev1Key];
+            const t2 = results[prev2Key];
+            if (t1 && t2) {
+              if (results[key].team === t1.team) eliminatedTeams.add(t2.team);
+              else eliminatedTeams.add(t1.team);
+            }
+          }
+        }
+      }
+    }
+  }
+
   const getPickStatus = (round, game) => {
-    // Returns "correct", "wrong", or null for each selected pick
     const key = `${regionKey}-${round}-${game}`;
     const pick = bracket[key];
     const result = results ? results[key] : null;
-    if (!pick || !result) return null;
-    return pick.team === result.team ? "correct" : "wrong";
+    if (!pick) return null;
+    // If this game has a result, check correct/wrong
+    if (result) {
+      return pick.team === result.team ? "correct" : "wrong";
+    }
+    // If game hasn't been played yet but the picked team is already eliminated
+    if (eliminatedTeams.has(pick.team)) {
+      return "eliminated";
+    }
+    return "pending";
   };
 
   const getMatchupTeams = (round, game) => {
@@ -278,14 +313,74 @@ function FinalFour({ bracket, setBracketPick, readOnly, tiebreaker, onTiebreaker
     setBracketPick("champ", team);
   };
 
+  // Build eliminated teams from all results
+  const eliminatedTeams = new Set();
+  if (readOnly && results) {
+    const regionKeys = ["east", "south", "west", "midwest"];
+    regionKeys.forEach((r) => {
+      for (let round = 0; round < 4; round++) {
+        const gamesInRound = 8 / Math.pow(2, round);
+        for (let g = 0; g < gamesInRound; g++) {
+          const key = `${r}-${round}-${g}`;
+          if (results[key]) {
+            if (round === 0) {
+              const regionData = REGIONS[r];
+              const m = getMatchups(regionData.seeds);
+              if (results[key].team === m[g][0].team) eliminatedTeams.add(m[g][1].team);
+              else eliminatedTeams.add(m[g][0].team);
+            } else {
+              const prev1Key = `${r}-${round - 1}-${g * 2}`;
+              const prev2Key = `${r}-${round - 1}-${g * 2 + 1}`;
+              const t1 = results[prev1Key];
+              const t2 = results[prev2Key];
+              if (t1 && t2) {
+                if (results[key].team === t1.team) eliminatedTeams.add(t2.team);
+                else eliminatedTeams.add(t1.team);
+              }
+            }
+          }
+        }
+      }
+    });
+    ["ff-0", "ff-1"].forEach((key) => {
+      if (results[key]) {
+        let t1, t2;
+        if (key === "ff-0") { t1 = results["east-3-0"]; t2 = results["south-3-0"]; }
+        else { t1 = results["west-3-0"]; t2 = results["midwest-3-0"]; }
+        if (t1 && t2) {
+          if (results[key].team === t1.team) eliminatedTeams.add(t2.team);
+          else eliminatedTeams.add(t1.team);
+        }
+      }
+    });
+    if (results["champ"]) {
+      const t1 = results["ff-0"];
+      const t2 = results["ff-1"];
+      if (t1 && t2) {
+        if (results["champ"].team === t1.team) eliminatedTeams.add(t2.team);
+        else eliminatedTeams.add(t1.team);
+      }
+    }
+  }
+
   const getFFStatus = (key) => {
-    if (!readOnly || !results || !bracket[key] || !results[key]) return null;
-    return bracket[key].team === results[key].team ? "correct" : "wrong";
+    if (!readOnly) return null;
+    const pick = bracket[key];
+    const result = results ? results[key] : null;
+    if (!pick) return null;
+    if (result) return pick.team === result.team ? "correct" : "wrong";
+    if (eliminatedTeams.has(pick.team)) return "eliminated";
+    return "pending";
   };
 
   const getChampStatus = () => {
-    if (!readOnly || !results || !bracket["champ"] || !results["champ"]) return null;
-    return bracket["champ"].team === results["champ"].team ? "correct" : "wrong";
+    if (!readOnly) return null;
+    const pick = bracket["champ"];
+    const result = results ? results["champ"] : null;
+    if (!pick) return null;
+    if (result) return pick.team === result.team ? "correct" : "wrong";
+    if (eliminatedTeams.has(pick.team)) return "eliminated";
+    return "pending";
   };
 
   const ff1Status = getFFStatus("ff-0");
@@ -1041,6 +1136,14 @@ export default function App() {
         .team-slot.pick-wrong {
           background: #3a0a0a; border-color: #ef4444; color: #fca5a5;
           font-weight: 600; opacity: 0.8;
+        }
+        .team-slot.pick-eliminated {
+          background: #1e1e1e; border-color: #4b5563; color: #6b7280;
+          font-weight: 400; opacity: 0.5; text-decoration: line-through;
+        }
+        .team-slot.pick-pending {
+          background: #0a1a3a; border-color: #3b82f6; color: #93c5fd;
+          font-weight: 500;
         }
         .pick-icon {
           margin-left: auto; font-size: 0.7rem; font-weight: 700;
