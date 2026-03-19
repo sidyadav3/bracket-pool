@@ -150,7 +150,7 @@ function getTeamForSlot(bracket, region, round, game, regionData) {
   return [t1, t2];
 }
 
-function TeamButton({ team, isSelected, onClick, disabled, small }) {
+function TeamButton({ team, isSelected, onClick, disabled, small, pickStatus }) {
   if (!team) return (
     <div className={`team-slot empty ${small ? 'small' : ''}`}>
       <span className="seed-badge">—</span>
@@ -158,24 +158,43 @@ function TeamButton({ team, isSelected, onClick, disabled, small }) {
     </div>
   );
 
+  const statusClass = pickStatus === "correct" ? "pick-correct" : pickStatus === "wrong" ? "pick-wrong" : "";
+
   return (
     <button
-      className={`team-slot ${isSelected ? "selected" : ""} ${disabled ? "disabled" : ""} ${small ? 'small' : ''}`}
+      className={`team-slot ${isSelected ? "selected" : ""} ${disabled ? "disabled" : ""} ${small ? 'small' : ''} ${statusClass}`}
       onClick={disabled ? undefined : onClick}
       style={{ cursor: disabled ? "default" : "pointer" }}
     >
       <span className="seed-badge">{team.seed}</span>
       <span className="team-name">{team.team}</span>
+      {pickStatus === "correct" && <span className="pick-icon">✓</span>}
+      {pickStatus === "wrong" && <span className="pick-icon">✗</span>}
     </button>
   );
 }
 
-function RegionBracket({ region, regionKey, bracket, setBracketPick, readOnly }) {
+function RegionBracket({ region, regionKey, bracket, setBracketPick, readOnly, results }) {
   const matchups = getMatchups(region.seeds);
 
   const getWinner = (round, game) => {
     const key = `${regionKey}-${round}-${game}`;
     return bracket[key];
+  };
+
+  const getResultWinner = (round, game) => {
+    if (!results) return null;
+    const key = `${regionKey}-${round}-${game}`;
+    return results[key] || null;
+  };
+
+  const getPickStatus = (round, game) => {
+    // Returns "correct", "wrong", or null for each selected pick
+    const key = `${regionKey}-${round}-${game}`;
+    const pick = bracket[key];
+    const result = results ? results[key] : null;
+    if (!pick || !result) return null;
+    return pick.team === result.team ? "correct" : "wrong";
   };
 
   const getMatchupTeams = (round, game) => {
@@ -207,6 +226,7 @@ function RegionBracket({ region, regionKey, bracket, setBracketPick, readOnly })
                 {Array.from({ length: gamesInRound }).map((_, game) => {
                   const [t1, t2] = getMatchupTeams(round, game);
                   const winner = getWinner(round, game);
+                  const status = readOnly ? getPickStatus(round, game) : null;
                   return (
                     <div key={game} className="matchup" style={{ marginTop: round > 0 ? `${Math.pow(2, round) * 4 - 8}px` : 0 }}>
                       <TeamButton
@@ -215,6 +235,7 @@ function RegionBracket({ region, regionKey, bracket, setBracketPick, readOnly })
                         onClick={() => t1 && handlePick(round, game, t1)}
                         disabled={readOnly || !t1}
                         small={round === 0}
+                        pickStatus={winner && t1 && winner.team === t1.team ? status : null}
                       />
                       <div className="vs-line"></div>
                       <TeamButton
@@ -223,6 +244,7 @@ function RegionBracket({ region, regionKey, bracket, setBracketPick, readOnly })
                         onClick={() => t2 && handlePick(round, game, t2)}
                         disabled={readOnly || !t2}
                         small={round === 0}
+                        pickStatus={winner && t2 && winner.team === t2.team ? status : null}
                       />
                     </div>
                   );
@@ -236,7 +258,7 @@ function RegionBracket({ region, regionKey, bracket, setBracketPick, readOnly })
   );
 }
 
-function FinalFour({ bracket, setBracketPick, readOnly, tiebreaker, onTiebreakerChange }) {
+function FinalFour({ bracket, setBracketPick, readOnly, tiebreaker, onTiebreakerChange, results }) {
   const eastWinner = bracket["east-3-0"];
   const southWinner = bracket["south-3-0"];
   const westWinner = bracket["west-3-0"];
@@ -256,6 +278,20 @@ function FinalFour({ bracket, setBracketPick, readOnly, tiebreaker, onTiebreaker
     setBracketPick("champ", team);
   };
 
+  const getFFStatus = (key) => {
+    if (!readOnly || !results || !bracket[key] || !results[key]) return null;
+    return bracket[key].team === results[key].team ? "correct" : "wrong";
+  };
+
+  const getChampStatus = () => {
+    if (!readOnly || !results || !bracket["champ"] || !results["champ"]) return null;
+    return bracket["champ"].team === results["champ"].team ? "correct" : "wrong";
+  };
+
+  const ff1Status = getFFStatus("ff-0");
+  const ff2Status = getFFStatus("ff-1");
+  const champStatus = getChampStatus();
+
   return (
     <div className="final-four-section">
       <h3 className="region-title">Final Four & Championship</h3>
@@ -264,26 +300,26 @@ function FinalFour({ bracket, setBracketPick, readOnly, tiebreaker, onTiebreaker
           <div className="ff-game">
             <div className="ff-label">Semifinal 1 <span className="pts-badge">{ROUND_POINTS[4]}pt</span></div>
             <div className="matchup">
-              <TeamButton team={eastWinner} isSelected={ff1Winner && eastWinner && ff1Winner.team === eastWinner.team} onClick={() => handleFF(0, eastWinner)} disabled={readOnly || !eastWinner} />
+              <TeamButton team={eastWinner} isSelected={ff1Winner && eastWinner && ff1Winner.team === eastWinner.team} onClick={() => handleFF(0, eastWinner)} disabled={readOnly || !eastWinner} pickStatus={ff1Winner && eastWinner && ff1Winner.team === eastWinner.team ? ff1Status : null} />
               <div className="vs-line"></div>
-              <TeamButton team={southWinner} isSelected={ff1Winner && southWinner && ff1Winner.team === southWinner.team} onClick={() => handleFF(0, southWinner)} disabled={readOnly || !southWinner} />
+              <TeamButton team={southWinner} isSelected={ff1Winner && southWinner && ff1Winner.team === southWinner.team} onClick={() => handleFF(0, southWinner)} disabled={readOnly || !southWinner} pickStatus={ff1Winner && southWinner && ff1Winner.team === southWinner.team ? ff1Status : null} />
             </div>
           </div>
           <div className="ff-game">
             <div className="ff-label">Semifinal 2 <span className="pts-badge">{ROUND_POINTS[4]}pt</span></div>
             <div className="matchup">
-              <TeamButton team={westWinner} isSelected={ff2Winner && westWinner && ff2Winner.team === westWinner.team} onClick={() => handleFF(1, westWinner)} disabled={readOnly || !westWinner} />
+              <TeamButton team={westWinner} isSelected={ff2Winner && westWinner && ff2Winner.team === westWinner.team} onClick={() => handleFF(1, westWinner)} disabled={readOnly || !westWinner} pickStatus={ff2Winner && westWinner && ff2Winner.team === westWinner.team ? ff2Status : null} />
               <div className="vs-line"></div>
-              <TeamButton team={midwestWinner} isSelected={ff2Winner && midwestWinner && ff2Winner.team === midwestWinner.team} onClick={() => handleFF(1, midwestWinner)} disabled={readOnly || !midwestWinner} />
+              <TeamButton team={midwestWinner} isSelected={ff2Winner && midwestWinner && ff2Winner.team === midwestWinner.team} onClick={() => handleFF(1, midwestWinner)} disabled={readOnly || !midwestWinner} pickStatus={ff2Winner && midwestWinner && ff2Winner.team === midwestWinner.team ? ff2Status : null} />
             </div>
           </div>
         </div>
         <div className="ff-champ">
           <div className="ff-label">Championship <span className="pts-badge gold">{ROUND_POINTS[5]}pt</span></div>
           <div className="matchup">
-            <TeamButton team={ff1Winner} isSelected={champ && ff1Winner && champ.team === ff1Winner.team} onClick={() => handleChamp(ff1Winner)} disabled={readOnly || !ff1Winner} />
+            <TeamButton team={ff1Winner} isSelected={champ && ff1Winner && champ.team === ff1Winner.team} onClick={() => handleChamp(ff1Winner)} disabled={readOnly || !ff1Winner} pickStatus={champ && ff1Winner && champ.team === ff1Winner.team ? champStatus : null} />
             <div className="vs-line"></div>
-            <TeamButton team={ff2Winner} isSelected={champ && ff2Winner && champ.team === ff2Winner.team} onClick={() => handleChamp(ff2Winner)} disabled={readOnly || !ff2Winner} />
+            <TeamButton team={ff2Winner} isSelected={champ && ff2Winner && champ.team === ff2Winner.team} onClick={() => handleChamp(ff2Winner)} disabled={readOnly || !ff2Winner} pickStatus={champ && ff2Winner && champ.team === ff2Winner.team ? champStatus : null} />
           </div>
           {champ && (
             <div className="champion-display">
@@ -998,6 +1034,17 @@ export default function App() {
           background: #1a3a2a; border-color: #10b981; color: #6ee7b7;
           font-weight: 600;
         }
+        .team-slot.pick-correct {
+          background: #0a3a1a; border-color: #10b981; color: #6ee7b7;
+          font-weight: 600;
+        }
+        .team-slot.pick-wrong {
+          background: #3a0a0a; border-color: #ef4444; color: #fca5a5;
+          font-weight: 600; opacity: 0.8;
+        }
+        .pick-icon {
+          margin-left: auto; font-size: 0.7rem; font-weight: 700;
+        }
         .team-slot.empty { opacity: 0.4; }
         .team-slot.disabled { opacity: 0.7; }
 
@@ -1062,7 +1109,7 @@ export default function App() {
         }
         .lb-header-row, .lb-row {
           display: grid;
-          grid-template-columns: 30px 80px 110px 40px 40px 36px repeat(6, 40px);
+          grid-template-columns: 36px 90px 130px 50px 50px 44px repeat(6, 44px);
           align-items: center; padding: 10px 16px; gap: 4px;
           font-size: 0.82rem;
           min-width: 720px;
@@ -1316,10 +1363,11 @@ export default function App() {
                   bracket={viewingPlayer.bracket}
                   setBracketPick={() => {}}
                   readOnly
+                  results={results}
                 />
               ))}
             </div>
-            <FinalFour bracket={viewingPlayer.bracket} setBracketPick={() => {}} readOnly tiebreaker={viewingPlayer.bracket.tiebreaker} />
+            <FinalFour bracket={viewingPlayer.bracket} setBracketPick={() => {}} readOnly tiebreaker={viewingPlayer.bracket.tiebreaker} results={results} />
           </>
         )}
 
