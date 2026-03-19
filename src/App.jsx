@@ -270,7 +270,7 @@ function RegionBracket({ region, regionKey, bracket, setBracketPick, readOnly, r
                         onClick={() => t1 && handlePick(round, game, t1)}
                         disabled={readOnly || !t1}
                         small={round === 0}
-                        pickStatus={winner && t1 && winner.team === t1.team ? status : null}
+                        pickStatus={(winner && t1 && winner.team === t1.team) ? status : (readOnly && t1 && eliminatedTeams.has(t1.team) ? "eliminated" : null)}
                       />
                       <div className="vs-line"></div>
                       <TeamButton
@@ -279,7 +279,7 @@ function RegionBracket({ region, regionKey, bracket, setBracketPick, readOnly, r
                         onClick={() => t2 && handlePick(round, game, t2)}
                         disabled={readOnly || !t2}
                         small={round === 0}
-                        pickStatus={winner && t2 && winner.team === t2.team ? status : null}
+                        pickStatus={(winner && t2 && winner.team === t2.team) ? status : (readOnly && t2 && eliminatedTeams.has(t2.team) ? "eliminated" : null)}
                       />
                     </div>
                   );
@@ -395,26 +395,26 @@ function FinalFour({ bracket, setBracketPick, readOnly, tiebreaker, onTiebreaker
           <div className="ff-game">
             <div className="ff-label">Semifinal 1 <span className="pts-badge">{ROUND_POINTS[4]}pt</span></div>
             <div className="matchup">
-              <TeamButton team={eastWinner} isSelected={ff1Winner && eastWinner && ff1Winner.team === eastWinner.team} onClick={() => handleFF(0, eastWinner)} disabled={readOnly || !eastWinner} pickStatus={ff1Winner && eastWinner && ff1Winner.team === eastWinner.team ? ff1Status : null} />
+              <TeamButton team={eastWinner} isSelected={ff1Winner && eastWinner && ff1Winner.team === eastWinner.team} onClick={() => handleFF(0, eastWinner)} disabled={readOnly || !eastWinner} pickStatus={(ff1Winner && eastWinner && ff1Winner.team === eastWinner.team) ? ff1Status : (readOnly && eastWinner && eliminatedTeams.has(eastWinner.team) ? "eliminated" : null)} />
               <div className="vs-line"></div>
-              <TeamButton team={southWinner} isSelected={ff1Winner && southWinner && ff1Winner.team === southWinner.team} onClick={() => handleFF(0, southWinner)} disabled={readOnly || !southWinner} pickStatus={ff1Winner && southWinner && ff1Winner.team === southWinner.team ? ff1Status : null} />
+              <TeamButton team={southWinner} isSelected={ff1Winner && southWinner && ff1Winner.team === southWinner.team} onClick={() => handleFF(0, southWinner)} disabled={readOnly || !southWinner} pickStatus={(ff1Winner && southWinner && ff1Winner.team === southWinner.team) ? ff1Status : (readOnly && southWinner && eliminatedTeams.has(southWinner.team) ? "eliminated" : null)} />
             </div>
           </div>
           <div className="ff-game">
             <div className="ff-label">Semifinal 2 <span className="pts-badge">{ROUND_POINTS[4]}pt</span></div>
             <div className="matchup">
-              <TeamButton team={westWinner} isSelected={ff2Winner && westWinner && ff2Winner.team === westWinner.team} onClick={() => handleFF(1, westWinner)} disabled={readOnly || !westWinner} pickStatus={ff2Winner && westWinner && ff2Winner.team === westWinner.team ? ff2Status : null} />
+              <TeamButton team={westWinner} isSelected={ff2Winner && westWinner && ff2Winner.team === westWinner.team} onClick={() => handleFF(1, westWinner)} disabled={readOnly || !westWinner} pickStatus={(ff2Winner && westWinner && ff2Winner.team === westWinner.team) ? ff2Status : (readOnly && westWinner && eliminatedTeams.has(westWinner.team) ? "eliminated" : null)} />
               <div className="vs-line"></div>
-              <TeamButton team={midwestWinner} isSelected={ff2Winner && midwestWinner && ff2Winner.team === midwestWinner.team} onClick={() => handleFF(1, midwestWinner)} disabled={readOnly || !midwestWinner} pickStatus={ff2Winner && midwestWinner && ff2Winner.team === midwestWinner.team ? ff2Status : null} />
+              <TeamButton team={midwestWinner} isSelected={ff2Winner && midwestWinner && ff2Winner.team === midwestWinner.team} onClick={() => handleFF(1, midwestWinner)} disabled={readOnly || !midwestWinner} pickStatus={(ff2Winner && midwestWinner && ff2Winner.team === midwestWinner.team) ? ff2Status : (readOnly && midwestWinner && eliminatedTeams.has(midwestWinner.team) ? "eliminated" : null)} />
             </div>
           </div>
         </div>
         <div className="ff-champ">
           <div className="ff-label">Championship <span className="pts-badge gold">{ROUND_POINTS[5]}pt</span></div>
           <div className="matchup">
-            <TeamButton team={ff1Winner} isSelected={champ && ff1Winner && champ.team === ff1Winner.team} onClick={() => handleChamp(ff1Winner)} disabled={readOnly || !ff1Winner} pickStatus={champ && ff1Winner && champ.team === ff1Winner.team ? champStatus : null} />
+            <TeamButton team={ff1Winner} isSelected={champ && ff1Winner && champ.team === ff1Winner.team} onClick={() => handleChamp(ff1Winner)} disabled={readOnly || !ff1Winner} pickStatus={(champ && ff1Winner && champ.team === ff1Winner.team) ? champStatus : (readOnly && ff1Winner && eliminatedTeams.has(ff1Winner.team) ? "eliminated" : null)} />
             <div className="vs-line"></div>
-            <TeamButton team={ff2Winner} isSelected={champ && ff2Winner && champ.team === ff2Winner.team} onClick={() => handleChamp(ff2Winner)} disabled={readOnly || !ff2Winner} pickStatus={champ && ff2Winner && champ.team === ff2Winner.team ? champStatus : null} />
+            <TeamButton team={ff2Winner} isSelected={champ && ff2Winner && champ.team === ff2Winner.team} onClick={() => handleChamp(ff2Winner)} disabled={readOnly || !ff2Winner} pickStatus={(champ && ff2Winner && champ.team === ff2Winner.team) ? champStatus : (readOnly && ff2Winner && eliminatedTeams.has(ff2Winner.team) ? "eliminated" : null)} />
           </div>
           {champ && (
             <div className="champion-display">
