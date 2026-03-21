@@ -601,11 +601,14 @@ function Leaderboard({ players, results }) {
     const tiebreakerDiff = (tiebreaker !== null && actualTotal !== null) ? Math.abs(tiebreaker - actualTotal) : null;
     return { ...p, score, maxPossible, tiebreaker, tiebreakerDiff };
   }).sort((a, b) => {
+    // 1. Highest total points first
     if (b.score.total !== a.score.total) return b.score.total - a.score.total;
+    // 2. If tied and actual tiebreaker is entered, closest to actual wins
     if (a.tiebreakerDiff !== null && b.tiebreakerDiff !== null) {
       return a.tiebreakerDiff - b.tiebreakerDiff;
     }
-    return 0;
+    // 3. Otherwise, highest max possible points first
+    return b.maxPossible - a.maxPossible;
   });
 
   const maxTotal = 32 * 1 + 16 * 2 + 8 * 4 + 4 * 6 + 2 * 8 + 1 * 10 ;
