@@ -1214,7 +1214,7 @@ export default function App() {
         }
         .lb-header-row, .lb-row {
           display: grid;
-          grid-template-columns: 36px 90px 115px 42px 42px 38px repeat(6, 42px);
+          grid-template-columns: 36px 90px 95px 42px 42px 38px repeat(6, 42px);
           align-items: center; padding: 10px 16px; gap: 4px;
           font-size: 0.82rem;
           min-width: 720px;
